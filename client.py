@@ -18,16 +18,16 @@ def send_screenshot(connection):
         data_len = len(buffer)
         connection.sendall(struct.pack('>I', data_len))
 
-        # Now send the actual image data
+        # Send the image data in chunks to ensure complete transmission
         connection.sendall(buffer)
 
         # Wait before capturing the next screenshot
-        time.sleep(0.1)  # Adjust the delay if necessary
+        time.sleep(0.1)  # Adjust the delay as needed
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
 
-    ip = '172.26.136.52'  # Replace with server IP address
+    ip = '172.26.136.52'  # Replace with the server IP address
     port = 4444
 
     # Create a socket object
