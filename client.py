@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QApplication
-from PyQt5.QtGui import QScreen
+from PyQt5.QtGui import QImage
 from socket import socket, AF_INET, SOCK_STREAM
 import struct
 import time
