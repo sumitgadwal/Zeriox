@@ -22,7 +22,7 @@ def send_screenshot(connection):
         connection.sendall(buffer)
 
         # Wait before capturing the next screenshot
-        time.sleep(0.1)  # Adjust the delay as needed
+        time.sleep(1)  # Adjust the delay as needed
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
