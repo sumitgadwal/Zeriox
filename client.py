@@ -1,28 +1,35 @@
 import sys
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QImage
+from PyQt5.QtCore import QTimer
 from socket import socket, AF_INET, SOCK_STREAM
 import struct
-import time
+import io
 
 def send_screenshot(connection):
     while True:
-        # Capture the screen
-        screen = QApplication.primaryScreen()
-        screenshot = screen.grabWindow(0).toImage()
+        try:
+            # Capture the screen
+            screen = QApplication.primaryScreen()
+            screenshot = screen.grabWindow(0).toImage()
 
-        # Convert the screenshot to bytes
-        buffer = screenshot.bits().asstring(screenshot.byteCount())
+            # Convert the screenshot to bytes
+            buffer = io.BytesIO()
+            screenshot.save(buffer, format='PNG')
+            buffer.seek(0)
+            image_data = buffer.read()
 
-        # Send the length of the data first
-        data_len = len(buffer)
-        connection.sendall(struct.pack('>I', data_len))
+            # Send the length of the data first
+            data_len = len(image_data)
+            connection.sendall(struct.pack('>I', data_len))
 
-        # Send the image data in chunks to ensure complete transmission
-        connection.sendall(buffer)
+            # Send the image data in chunks
+            connection.sendall(image_data)
 
-        # Wait before capturing the next screenshot
-        time.sleep(1)  # Adjust the delay as needed
+            # Wait before capturing the next screenshot
+            QTimer.singleShot(100, lambda: None)  # Adjust the delay as needed
+        except Exception as e:
+            print(f"Error capturing or sending screenshot: {e}")
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
