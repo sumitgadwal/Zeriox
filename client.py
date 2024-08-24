@@ -1,31 +1,52 @@
-import socket
-import io
-import time
-from PIL import ImageGrab
+# client_gui.py
 
-def send_screenshot(client_socket):
-    try:
-        while True:
-            # Capture the screen
-            img = ImageGrab.grab()
-            with io.BytesIO() as buffer:
-                img.save(buffer, format='PNG')
-                img_data = buffer.getvalue()
+import sys
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout
+from vidstream import ScreenShareClient
+import threading
 
-            # Send the screenshot data to the server
-            client_socket.sendall(b"SCREENSHOT" + img_data)
+class ClientApp(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+        self.sender = None
+        self.thread = None
 
-            # Wait before taking the next screenshot
-            time.sleep(5)  # Adjust the interval as needed
-    except Exception as e:
-        print(f"Error: {e}")
+    def initUI(self):
+        self.setWindowTitle('Client Control')
+        self.setGeometry(100, 100, 300, 100)
 
-def main():
-    server_ip = "127.0.0.1"  # Change this to your server's IP address
-    server_port = 4444
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((server_ip, server_port))
-    send_screenshot(client_socket)
+        self.start_btn = QPushButton('Start Client', self)
+        self.start_btn.clicked.connect(self.start_client)
 
-if __name__ == "__main__":
-    main()
+        self.stop_btn = QPushButton('Stop Client', self)
+        self.stop_btn.clicked.connect(self.stop_client)
+        self.stop_btn.setEnabled(False)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.start_btn)
+        layout.addWidget(self.stop_btn)
+
+        self.setLayout(layout)
+
+    def start_client(self):
+        self.sender = ScreenShareClient("192.168.200.27", 4525)
+        self.thread = threading.Thread(target=self.sender.start_stream)
+        self.thread.start()
+
+        self.start_btn.setEnabled(False)
+        self.stop_btn.setEnabled(True)
+
+    def stop_client(self):
+        if self.sender:
+            self.sender.stop_stream()
+        self.thread.join()
+
+        self.start_btn.setEnabled(True)
+        self.stop_btn.setEnabled(False)
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    ex = ClientApp()
+    ex.show()
+    sys.exit(app.exec_())
