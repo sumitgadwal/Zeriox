@@ -33,7 +33,9 @@ class ClientApp:
             screen.save(buffer, format='JPEG')
             image_data = buffer.getvalue()
 
+            # First send the size of the image
             self.client_socket.send(len(image_data).to_bytes(4, 'big'))
+            # Then send the actual image data
             self.client_socket.sendall(image_data)
 
             self.master.after(30, self.send_screen)  # Send every 30 ms
