@@ -28,17 +28,19 @@ class ClientApp:
 
     def send_screen(self):
         if self.sending:
+            # Capture the screen
             screen = ImageGrab.grab()
             buffer = io.BytesIO()
             screen.save(buffer, format='JPEG')
             image_data = buffer.getvalue()
 
-            # First send the size of the image
+            # Send the size of the image
             self.client_socket.send(len(image_data).to_bytes(4, 'big'))
-            # Then send the actual image data
+            # Send the actual image data
             self.client_socket.sendall(image_data)
 
-            self.master.after(30, self.send_screen)  # Send every 30 ms
+            # Continuously send the screen data every 100ms for a smoother live stream
+            self.master.after(100, self.send_screen)
 
     def stop_sharing(self):
         self.sending = False
