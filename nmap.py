@@ -3,24 +3,62 @@ import argparse
 import time
 import sys
 
-def scan_ports(target, port_range):
-    open_ports = []
+# Define common ports for specific services
+COMMON_PORTS = {
+    'TCP': [21, 22, 23, 25, 80, 443, 3306, 5432],
+    'UDP': [53, 67, 68, 123, 161, 162],
+    'FTP': [21]  # FTP is typically on port 21
+}
+
+def scan_ports(target, protocols):
+    open_ports = {'TCP': [], 'UDP': [], 'FTP': []}
     start_time = time.time()
-    for port in range(port_range[0], port_range[1] + 1):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        socket.setdefaulttimeout(0.05)  # Reducing the timeout for faster scanning
-        result = sock.connect_ex((target, port))
-        if result == 0:
-            open_ports.append(port)
-        sock.close()
-        # Check if the scanning process is exceeding 10 seconds
-        if time.time() - start_time > 10:
-            break
+    
+    for protocol in protocols:
+        for port in COMMON_PORTS[protocol]:
+            if protocol == 'TCP':
+                try:
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.settimeout(0.05)  # Timeout for quick scanning
+                    result = sock.connect_ex((target, port))
+                    if result == 0:
+                        open_ports['TCP'].append(port)
+                    sock.close()
+                except Exception as e:
+                    pass
+
+            elif protocol == 'UDP':
+                try:
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    sock.settimeout(0.05)  # Timeout for quick scanning
+                    sock.sendto(b'', (target, port))
+                    try:
+                        sock.recvfrom(1024)
+                        open_ports['UDP'].append(port)
+                    except socket.error:
+                        pass
+                    sock.close()
+                except Exception as e:
+                    pass
+
+            elif protocol == 'FTP':
+                # FTP is a TCP service, so it is included in TCP scan by default
+                if port in open_ports['TCP']:
+                    open_ports['FTP'].append(port)
+
+            # Check if the scanning process is exceeding 10 seconds
+            if time.time() - start_time > 10:
+                break
+
     return open_ports
 
 def save_to_file(filename, data):
     with open(filename, 'w') as f:
-        f.write("\n".join(data))
+        for protocol, ports in data.items():
+            f.write(f"{protocol} Ports:\n")
+            for port in ports:
+                f.write(f"Port {port} is open\n")
+            f.write("\n")
 
 def show_animation():
     animation = "|/-\\"
@@ -44,7 +82,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Zeriox Open Nmap - Ethical Port Scanning Tool")
     parser.add_argument("target", help="Target IP address or hostname")
     parser.add_argument("output_file", help="Output file to save the results")
-    parser.add_argument("--port_range", default="1-1024", help="Range of ports to scan (e.g., 1-1024). Defaults to 1-1024.")
 
     args = parser.parse_args()
 
@@ -52,15 +89,15 @@ if __name__ == "__main__":
     show_animation()
 
     print(f"\n[*] Scanning {args.target} for open ports...\n")
-    port_range = tuple(map(int, args.port_range.split('-')))
-    open_ports = scan_ports(args.target, port_range)
+    protocols = ['TCP', 'UDP', 'FTP']
+    open_ports = scan_ports(args.target, protocols)
 
-    for port in open_ports:
-        print(f"[+] Port {port} is OPEN")
-        time.sleep(0.1)
+    for protocol, ports in open_ports.items():
+        for port in ports:
+            print(f"[+] {protocol} Port {port} is OPEN")
+            time.sleep(0.1)
     
     print("\n[+] Scan complete. Saving results...\n")
-    formatted_ports = [f"Port {port} is open" for port in open_ports]
-    save_to_file(args.output_file, formatted_ports)
+    save_to_file(args.output_file, open_ports)
     
     print(f"[+] Results saved to {args.output_file}\n")
