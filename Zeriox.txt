@@ -1,1 +1,19 @@
-Under The Working..
+Browser Project Overview
+
+Features:
+1. Automatic IP Change: The browser will automatically change its IP address every minute.
+2. Easy Interface: User-friendly interface for seamless navigation.
+3. AI Chatbot: 
+   - Name: Dord 
+   - Developed by: Zeriox Team
+   - Version: 1.1
+4. Open Source: The project is open source, allowing for community contributions and transparency.
+
+Browser Version:
+- Version: 0.1
+
+Bugs:
+- The browser features are not fully implemented, which may lead to various bugs within the application.
+
+launch date:
+-5 December 2024.
